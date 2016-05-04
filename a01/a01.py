@@ -10,6 +10,8 @@ import tarfile
 from IPython.display import display
 from scipy import ndimage
 from sklearn.linear_model import LogisticRegression
+from sklearn.svm import LinearSVC #SVM implemented in C with Linear Kernel
+from sklearn.svm import SVC #SVM implemented in C with RBF Kernel
 from six.moves.urllib.request import urlretrieve
 from six.moves import cPickle as pickle
 pickle_file = 'notMNIST.pickle'
@@ -295,8 +297,10 @@ if data_ready:
   # checkOverlap(train_dataset, valid_dataset, "train_dataset", "valid_dataset")
   # checkOverlap(test_dataset, valid_dataset, "test_dataset", "valid_dataset")
 
+  #LogisticRegression
+  print("Start LogisticRegression on the notMNIST dataset")
   regr = LogisticRegression()
-  regr.fit(train_dataset, train_labels)
+  regr.fit(train_dataset[0:5000], train_labels[0:5000])
   print('Coeffcients: ', regr.coef_)
   print("Residual sum of squares: %.2f"
         % np.mean((regr.predict(test_dataset) - test_labels) ** 2))
@@ -310,5 +314,38 @@ if data_ready:
   accuracy = (right_answer[0]/train_labels.shape[0], right_answer[1]/test_labels.shape[0])
   print('Accuracy on train_dataset: ', accuracy[0])
   print('Accuracy on test_dataset: ', accuracy[1])
+
+  print('Start LinearSVC on the notMINIST dataset')
+  lsvc = LinearSVC()
+  lsvc.fit(train_dataset[0:5000], train_labels[0:5000])
+  print('Coeffcients: ', lsvc.coef_)
+  print("Residual sum of squares: %.2f"
+        % np.mean((lsvc.predict(test_dataset) - test_labels) ** 2))
+
+  print('Variance score: %.2f' % lsvc.score(test_dataset, test_labels))
+
+  # Calculate Accuracy
+  predict_result = (lsvc.predict(train_dataset),lsvc.predict(test_dataset))
+  right_answer = (sum(np.equal(predict_result[0], train_labels)), sum(np.equal(predict_result[1], test_labels)))
+  accuracy = (right_answer[0]/train_labels.shape[0], right_answer[1]/test_labels.shape[0])
+  print('Accuracy on train_dataset: ', accuracy[0])
+  print('Accuracy on test_dataset: ', accuracy[1])
+
+  print('Start SVC on the notMINIST dataset')
+  svc = SVC()
+  svc.fit(train_dataset[0:5000], train_labels[0:5000])
+  print('Coeffcients: ', svc.dual_coef_)
+  print("Residual sum of squares: %.2f"
+        % np.mean((svc.predict(test_dataset) - test_labels) ** 2))
+
+  print('Variance score: %.2f' % svc.score(test_dataset, test_labels))
+
+  # Calculate Accuracy
+  predict_result = (svc.predict(train_dataset),svc.predict(test_dataset))
+  right_answer = (sum(np.equal(predict_result[0], train_labels)), sum(np.equal(predict_result[1], test_labels)))
+  accuracy = (right_answer[0]/train_labels.shape[0], right_answer[1]/test_labels.shape[0])
+  print('Accuracy on train_dataset: ', accuracy[0])
+  print('Accuracy on test_dataset: ', accuracy[1])
 else:
   print('Data is not prepared')
+
