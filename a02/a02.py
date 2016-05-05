@@ -264,7 +264,7 @@ with graph.as_default():
   valid_prediction = tf.nn.softmax(forward_prop(tf_valid_dataset))
   test_prediction = tf.nn.softmax(forward_prop(tf_test_dataset))
 
-num_steps = 3001
+num_steps = 6001
 
 with tf.Session(graph=graph) as session:
   tf.initialize_all_variables().run()
