@@ -1,4 +1,3 @@
-@@ -0,0 +1,305 @@
 from __future__ import print_function
 import numpy as np
 import tensorflow as tf
@@ -37,7 +36,7 @@ print('Test set', test_dataset.shape, test_labels.shape)
 
 # With gradient descent training, even this much data is prohibitive.
 # Subset the training data for faster turnaround.
-train_subset = 1
+train_subset = 10
 
 graph = tf.Graph()
 with graph.as_default():
@@ -167,16 +166,14 @@ with tf.Session(graph=graph) as session:
         valid_prediction.eval(), valid_labels))
   print("Test accuracy: %.1f%%" % accuracy(test_prediction.eval(), test_labels))
 #1-Hidden Layer Neural Network
-batch_size = 256
-hidden_nodes = 2048
+hidden_nodes = 1024
 graph = tf.Graph()
 with graph.as_default():
 
   # Input data. For the training data, we use a placeholder that will be fed
   # at run time with a training minibatch.
-  tf_train_dataset = tf.placeholder(tf.float32,
-                                    shape=(batch_size, image_size * image_size))
-  tf_train_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels))
+  tf_train_dataset = tf.constant(train_dataset[:train_subset, :])
+  tf_train_labels = tf.constant(train_labels[:train_subset])
   tf_valid_dataset = tf.constant(valid_dataset)
   tf_test_dataset = tf.constant(test_dataset)
   
@@ -196,7 +193,7 @@ with graph.as_default():
 
   # Training computation.
   def forward_prop(inp):
-  	h1 = tf.nn.relu(tf.matmul(inp, weights_1) + biases_1)
+  	h1 = tf.nn.relu(tf.matmul(tf.nn.dropout(inp,0.5), weights_1) + biases_1)
   	h2 = tf.matmul(h1, weights_2) + biases_2
   	return h2
   logits = forward_prop(tf_train_dataset)
@@ -213,39 +210,36 @@ with graph.as_default():
 num_steps = 801
 
 with tf.Session(graph=graph) as session:
+  # This is a one-time operation which ensures the parameters get initialized as
+  # we described in the graph: random weights for the matrix, zeros for the
+  # biases. 
   tf.initialize_all_variables().run()
-  print("Initialized")
+  print('Initialized')
   for step in range(num_steps):
-    # Pick an offset within the training data, which has been randomized.
-    # Note: we could use better randomization across epochs.
-    offset = (step * batch_size) % (train_labels.shape[0] - batch_size)
-    # Generate a minibatch.
-    batch_data = train_dataset[offset:(offset + batch_size), :]
-    batch_labels = train_labels[offset:(offset + batch_size), :]
-    # Prepare a dictionary telling the session where to feed the minibatch.
-    # The key of the dictionary is the placeholder node of the graph to be fed,
-    # and the value is the numpy array to feed to it.
-    feed_dict = {tf_train_dataset : batch_data, tf_train_labels : batch_labels}
-    _, l, predictions = session.run(
-      [optimizer, loss, train_prediction], feed_dict=feed_dict)
+    # Run the computations. We tell .run() that we want to run the optimizer,
+    # and get the loss value and the training predictions returned as numpy
+    # arrays.
+    _, l, predictions = session.run([optimizer, loss, train_prediction])
     if (step % 500 == 0):
-      print("Minibatch loss at step %d: %f" % (step, l))
-      print("Minibatch accuracy: %.1f%%" % accuracy(predictions, batch_labels))
-      print("Validation accuracy: %.1f%%" % accuracy(
+      print('Loss at step %d: %f' % (step, l))
+      print('Training accuracy: %.1f%%' % accuracy(
+        predictions, train_labels[:train_subset, :]))
+      # Calling .eval() on valid_prediction is basically like calling run(), but
+      # just to get that one numpy array. Note that it recomputes all its graph
+      # dependencies.
+      print('Validation accuracy: %.1f%%' % accuracy(
         valid_prediction.eval(), valid_labels))
-  print("Test accuracy: %.1f%%" % accuracy(test_prediction.eval(), test_labels))
+  print('Test accuracy: %.1f%%' % accuracy(test_prediction.eval(), test_labels))
 
 #1-Hidden Layer Neural Network (AdamOptimizer)
-batch_size = 256
 hidden_nodes = 1024
 graph = tf.Graph()
 with graph.as_default():
 
   # Input data. For the training data, we use a placeholder that will be fed
   # at run time with a training minibatch.
-  tf_train_dataset = tf.placeholder(tf.float32,
-                                    shape=(batch_size, image_size * image_size))
-  tf_train_labels = tf.placeholder(tf.float32, shape=(batch_size, num_labels))
+  tf_train_dataset = tf.constant(train_dataset[:train_subset, :])
+  tf_train_labels = tf.constant(train_labels[:train_subset])
   tf_valid_dataset = tf.constant(valid_dataset)
   tf_test_dataset = tf.constant(test_dataset)
   
@@ -265,7 +259,7 @@ with graph.as_default():
 
   # Training computation.
   def forward_prop(inp):
-  	h1 = tf.nn.relu(tf.matmul(inp, weights_1) + biases_1)
+  	h1 = tf.nn.relu(tf.matmul(tf.nn.dropout(inp,0.5), weights_1) + biases_1)
   	h2 = tf.matmul(h1, weights_2) + biases_2
   	return h2
   logits = forward_prop(tf_train_dataset)
@@ -282,25 +276,24 @@ with graph.as_default():
 num_steps = 801
 
 with tf.Session(graph=graph) as session:
+  # This is a one-time operation which ensures the parameters get initialized as
+  # we described in the graph: random weights for the matrix, zeros for the
+  # biases. 
   tf.initialize_all_variables().run()
-  print("Initialized")
+  print('Initialized')
   for step in range(num_steps):
-    # Pick an offset within the training data, which has been randomized.
-    # Note: we could use better randomization across epochs.
-    offset = (step * batch_size) % (train_labels.shape[0] - batch_size)
-    # Generate a minibatch.
-    batch_data = train_dataset[offset:(offset + batch_size), :]
-    batch_labels = train_labels[offset:(offset + batch_size), :]
-    # Prepare a dictionary telling the session where to feed the minibatch.
-    # The key of the dictionary is the placeholder node of the graph to be fed,
-    # and the value is the numpy array to feed to it.
-    feed_dict = {tf_train_dataset : batch_data, tf_train_labels : batch_labels}
-    _, l, predictions = session.run(
-      [optimizer, loss, train_prediction], feed_dict=feed_dict)
+    # Run the computations. We tell .run() that we want to run the optimizer,
+    # and get the loss value and the training predictions returned as numpy
+    # arrays.
+    _, l, predictions = session.run([optimizer, loss, train_prediction])
     if (step % 500 == 0):
-      print("Minibatch loss at step %d: %f" % (step, l))
-      print("Minibatch accuracy: %.1f%%" % accuracy(predictions, batch_labels))
-      print("Validation accuracy: %.1f%%" % accuracy(
+      print('Loss at step %d: %f' % (step, l))
+      print('Training accuracy: %.1f%%' % accuracy(
+        predictions, train_labels[:train_subset, :]))
+      # Calling .eval() on valid_prediction is basically like calling run(), but
+      # just to get that one numpy array. Note that it recomputes all its graph
+      # dependencies.
+      print('Validation accuracy: %.1f%%' % accuracy(
         valid_prediction.eval(), valid_labels))
-  print("Test accuracy: %.1f%%" % accuracy(test_prediction.eval(), test_labels))
+  print('Test accuracy: %.1f%%' % accuracy(test_prediction.eval(), test_labels))
 
